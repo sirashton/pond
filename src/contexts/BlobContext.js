@@ -1,9 +1,10 @@
-import React, { createContext, useState } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 
 export const BlobContext = createContext();
 
 export const BlobProvider = ({ children }) => {
   const [blobs, setBlobs] = useState([]);
+  const [frame, setFrame] = useState(0);
 
   const addBlob = (blob) => {
     setBlobs((prevBlobs) => {
@@ -12,6 +13,11 @@ export const BlobProvider = ({ children }) => {
         return newBlobs;
       });
   };
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setFrame(frame + 1));
+    return () => cancelAnimationFrame(id);
+  }, [frame]);
 
   return (
     <BlobContext.Provider value={{ blobs, addBlob }}>

@@ -1,16 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useContext } from 'react';
 import { spline } from '@georgedoescode/spline';
+import { AnimationContext } from '../contexts/AnimationContext';
 
-const Blob = ({ size, color, position, direction, spineLength = 10, spineDistance = 10 }) => {
-    console.log('Rendering Blob with size:', size, 'color:', color, 'position:', position, 'direction:', direction);
+const Blob = ({ size, color, position, direction, spineLength = 10, spineDistance = 10, initialDestDist = 100 }) => {
+    // console.log('Rendering Blob with size:', size, 'color:', color, 'position:', position, 'direction:', direction);
+    const frame = useContext(AnimationContext);
+    
     const ref = useRef();
     const pointsRef = useRef(createPoints(size, position));
     const directionRef = useRef(direction);
     // Set the default target destination to 100 unit in front of the head
-    const destinationRef = useRef({ x: position.x + direction.x * 100, y: position.y + direction.y * 100 });
-    
-    // eslint-disable-next-line no-unused-vars
-    const [renderCount, setRenderCount] = useState(0);
+    const destinationRef = useRef({
+        x: position.x + direction.x * initialDestDist,
+        y: position.y + direction.y * initialDestDist
+    });
 
     // Create spine points behind the head
     const initialSpinePoints = Array.from({ length: spineLength }, (_, i) => ({
@@ -22,6 +25,10 @@ const Blob = ({ size, color, position, direction, spineLength = 10, spineDistanc
     // Define a variable to store the time when the cursor last moved
     const lastCursorMoveTimeRef = useRef(Date.now());
 
+    // A Random 0-2pi offset for the wiggle of the fish
+    const wiggleOffset = Math.random() * Math.PI * 2;
+    // TODO: Maybe this should sync up with nearby fish as they start to schoal?
+
     // A function that takes in the current direction and the desired Direction and returns the new direction
     // It limits the angle change to maxAngleChange
     // And addes a sinusoidal wiggle to the direction to mimic the movement of a fish
@@ -29,8 +36,8 @@ const Blob = ({ size, color, position, direction, spineLength = 10, spineDistanc
         // add a sinusoidal wiggle to the desired direction, to mimic the movement of a fish
         const wiggleDuration = 2; // in seconds
         // Set max wiggle angle to 30 degrees in radians
-        const maxWiggleAngle = 20 * Math.PI / 180;
-        const offSet = Math.sin(Date.now() / (wiggleDuration * 1000) * Math.PI * 2) * maxWiggleAngle;
+        const maxWiggleAngle = 30 * Math.PI / 180;
+        const offSet = Math.sin(Date.now() / (wiggleDuration * 1000) * Math.PI * 2 + wiggleOffset) * maxWiggleAngle;
 
         const desiredBearing = Math.atan2(desiredDirection.y, desiredDirection.x) +  offSet;
         const currentBearing = Math.atan2(currentDirection.y, currentDirection.x);
@@ -70,14 +77,14 @@ const Blob = ({ size, color, position, direction, spineLength = 10, spineDistanc
 
     useEffect(() => {
       function animate() {
-        // Pulsate the blob
-        for (let i = 0; i < pointsRef.current.length; i++) {
-            const point = pointsRef.current[i];
-            point.y = point.originY + Math.sin(point.angel) * 20;
-            point.angel += point.speed;
-        }
-        // Update SVG path
-        ref.current.setAttribute('d', spline(pointsRef.current, 1, true));
+        // // Pulsate the blob
+        // for (let i = 0; i < pointsRef.current.length; i++) {
+        //     const point = pointsRef.current[i];
+        //     point.y = point.originY + Math.sin(point.angel) * 20;
+        //     point.angel += point.speed;
+        // }
+        // // Update SVG path
+        // ref.current.setAttribute('d', spline(pointsRef.current, 1, true));
 
         const idleTimeThreshold = 5000; // miliseconds
 
@@ -208,14 +215,12 @@ const Blob = ({ size, color, position, direction, spineLength = 10, spineDistanc
             
         });
 
-        // Trigger a re-render
-        setRenderCount(renderCount => renderCount + 1);
-
-        requestAnimationFrame(animate);
       }
   
       animate();
-    }, [spineDistance]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    // });
+    });
 
     return (
         <svg style={{position: 'absolute', top: 0, left: 0, width: '100vw', height: '100vh', pointerEvents: 'none'}} viewBox={`0 0 ${window.innerWidth} ${window.innerHeight}`}>
